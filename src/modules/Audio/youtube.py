@@ -3,6 +3,8 @@
 import os
 import yt_dlp
 
+from modules.Audio.convert_audio import convert_wav_to_mp3
+
 from modules.os_helper import sanitize_filename, get_unused_song_output_dir
 from modules import os_helper
 from modules.ProcessData import MediaInfo
@@ -85,7 +87,27 @@ def __start_download(ydl_opts, url: str) -> None:
             raise Exception("Download failed with error: " + str(errors))
 
 
-def download_from_youtube(input_url: str, output_folder_path: str, cookiefile: str = None) -> tuple[str, str, str, MediaInfo]:
+def _ensure_audio_extension(audio_file_path: str, target_ext: str | None) -> str:
+    if not target_ext:
+        return audio_file_path
+
+    normalized = target_ext.lower().lstrip(".")
+    current_ext = os.path.splitext(audio_file_path)[1].lower().lstrip(".")
+    if current_ext == normalized:
+        return audio_file_path
+
+    converted_path = os.path.splitext(audio_file_path)[0] + f".{normalized}"
+    convert_wav_to_mp3(audio_file_path, converted_path)
+    os.remove(audio_file_path)
+    return converted_path
+
+
+def download_from_youtube(
+    input_url: str,
+    output_folder_path: str,
+    cookiefile: str = None,
+    audio_ext: str | None = None,
+) -> tuple[str, str, str, MediaInfo]:
     """Download from YouTube"""
     (artist, title) = get_youtube_title(input_url, cookiefile)
 
@@ -107,6 +129,7 @@ def download_from_youtube(input_url: str, output_folder_path: str, cookiefile: s
     audio_file_path, final_video_path = separate_audio_video(
         video_with_audio_path, basename_without_ext, song_output
     )
+    audio_file_path = _ensure_audio_extension(audio_file_path, audio_ext)
 
     if song_info.cover_url is not None and song_info.cover_image_data is not None:
         cover_url = song_info.cover_url

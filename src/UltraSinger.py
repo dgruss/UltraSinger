@@ -476,7 +476,12 @@ def InitProcessData():
             settings.output_folder_path,
             process_data.process_data_paths.audio_output_file_path,
             process_data.media_info
-        ) = download_from_youtube(settings.input_file_path, settings.output_folder_path, settings.cookiefile)
+        ) = download_from_youtube(
+            settings.input_file_path,
+            settings.output_folder_path,
+            settings.cookiefile,
+            settings.output_audio_ext,
+        )
     else:
         # Audio/Video File
         print(f"{ULTRASINGER_HEAD} {gold_highlighted('Full Automatic Mode')}")
@@ -514,17 +519,21 @@ def TranscribeAudio(process_data):
 
 
 def CreateUltraStarTxt(process_data: ProcessData):
+    audio_ext = settings.output_audio_ext
     # Move instrumental and vocals
     if settings.create_karaoke and version.parse(settings.format_version.value) < version.parse(
             FormatVersion.V1_1_0.value):
-        karaoke_output_path = os.path.join(settings.output_folder_path, process_data.basename + " [Karaoke].m4a")
+        karaoke_output_path = os.path.join(
+            settings.output_folder_path,
+            f"{process_data.basename} [Karaoke].{audio_ext}",
+        )
         convert_wav_to_mp3(process_data.process_data_paths.instrumental_audio_file_path, karaoke_output_path)
 
     if version.parse(settings.format_version.value) >= version.parse(FormatVersion.V1_1_0.value):
         instrumental_output_path = os.path.join(settings.output_folder_path,
-                                                process_data.basename + " [Instrumental].m4a")
+                                                f"{process_data.basename} [Instrumental].{audio_ext}")
         convert_wav_to_mp3(process_data.process_data_paths.instrumental_audio_file_path, instrumental_output_path)
-        vocals_output_path = os.path.join(settings.output_folder_path, process_data.basename + " [Vocals].m4a")
+        vocals_output_path = os.path.join(settings.output_folder_path, f"{process_data.basename} [Vocals].{audio_ext}")
         convert_wav_to_mp3(process_data.process_data_paths.vocals_audio_file_path, vocals_output_path)
 
     # Create Ultrastar txt
@@ -536,7 +545,8 @@ def CreateUltraStarTxt(process_data: ProcessData):
             process_data.media_info,
             settings.format_version,
             settings.create_karaoke,
-            settings.APP_VERSION
+            settings.APP_VERSION,
+            settings.output_audio_ext,
         )
     else:
         ultrastar_file_output = create_ultrastar_txt_from_midi_segments(
@@ -666,6 +676,9 @@ def infos_from_audio_video_input_file() -> tuple[str, str, str, MediaInfo]:
         ultrastar_audio_input_path, final_video_path = separate_audio_video(
             video_with_audio_path, basename_without_ext, song_folder_output_path
         )
+        ultrastar_audio_input_path = ensure_audio_extension(
+            ultrastar_audio_input_path, settings.output_audio_ext
+        )
     else:
         # Audio file
         basename_with_ext = f"{basename_without_ext}{extension}"
@@ -675,6 +688,9 @@ def infos_from_audio_video_input_file() -> tuple[str, str, str, MediaInfo]:
             os.path.join(song_folder_output_path, basename_with_ext),
         )
         ultrastar_audio_input_path = os.path.join(song_folder_output_path, basename_with_ext)
+        ultrastar_audio_input_path = ensure_audio_extension(
+            ultrastar_audio_input_path, settings.output_audio_ext
+        )
 
     # Todo: Read ID3 tags
     if song_info.cover_image_data is not None:
@@ -828,6 +844,17 @@ def init_settings(argv: list[str]) -> Settings:
                 sys.exit(1)
         elif opt in ("--keep_cache"):
             settings.keep_cache = True
+        elif opt in ("--audio_ext"):
+            normalized = arg.lower().lstrip(".")
+            if normalized == "aac":
+                normalized = "m4a"
+            supported = {"m4a", "mp3", "wav", "flac", "ogg"}
+            if normalized not in supported:
+                print(
+                    f"{ULTRASINGER_HEAD} {red_highlighted('Error: audio extension')} {blue_highlighted(arg)} {red_highlighted('is not supported.')}"
+                )
+                sys.exit(1)
+            settings.output_audio_ext = normalized
         elif opt in ("--musescore_path"):
             settings.musescore_path = arg
         #Addition of demucs model choice. Work seems to be needed to make sure syntax is same for models. Added error handling for unknown models
@@ -881,6 +908,7 @@ def arg_options():
         "force_crepe_cpu",
         "format_version=",
         "keep_cache",
+    "audio_ext=",
         "musescore_path=",
         "keep_numbers",
         "quantize_to_key",
@@ -889,6 +917,18 @@ def arg_options():
         "ffmpeg="
     ]
     return long, short
+
+
+def ensure_audio_extension(audio_file_path: str, target_ext: str) -> str:
+    target_ext = target_ext.lower().lstrip(".")
+    current_ext = os.path.splitext(audio_file_path)[1].lower().lstrip(".")
+    if not target_ext or current_ext == target_ext:
+        return audio_file_path
+
+    converted_path = os.path.splitext(audio_file_path)[0] + f".{target_ext}"
+    convert_wav_to_mp3(audio_file_path, converted_path)
+    os.remove(audio_file_path)
+    return converted_path
 
 if __name__ == "__main__":
     main(sys.argv[1:])

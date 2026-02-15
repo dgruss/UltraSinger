@@ -34,6 +34,7 @@ class Settings:
     
     language = None
     format_version = FormatVersion.V1_2_0
+    output_audio_ext = "m4a"
 
     # Demucs
     demucs_model = DemucsModel.HTDEMUCS  # htdemucs|htdemucs_ft|htdemucs_6s|hdemucs_mmi|mdx|mdx_extra|mdx_q|mdx_extra_q|SIG

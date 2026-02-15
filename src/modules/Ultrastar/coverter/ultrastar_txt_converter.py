@@ -60,16 +60,18 @@ def create_ultrastar_txt_from_automation(
         format_version: FormatVersion,
         create_karaoke: bool,
         app_version: str,
+    audio_ext: str = "m4a",
 ):
     """Create Ultrastar txt from automation"""
     print(f"{ULTRASINGER_HEAD} Using UltraStar {blue_highlighted(f'Format Version {format_version.value}')}")
 
     ultrastar_txt = UltrastarTxtValue()
     ultrastar_txt.version = format_version.value
-    ultrastar_txt.mp3 = basename + ".m4a"
-    ultrastar_txt.audio = basename + ".m4a"
-    ultrastar_txt.vocals = basename + " [Vocals].m4a"
-    ultrastar_txt.instrumental = basename + " [Instrumental].m4a"
+    normalized_audio_ext = audio_ext.lower().lstrip(".")
+    ultrastar_txt.mp3 = f"{basename}.{normalized_audio_ext}"
+    ultrastar_txt.audio = f"{basename}.{normalized_audio_ext}"
+    ultrastar_txt.vocals = f"{basename} [Vocals].{normalized_audio_ext}"
+    ultrastar_txt.instrumental = f"{basename} [Instrumental].{normalized_audio_ext}"
     ultrastar_txt.video = basename + ".mp4"
     ultrastar_txt.language = media_info.language
     cover = basename + " [CO].jpg"
@@ -103,7 +105,7 @@ def create_ultrastar_txt_from_automation(
     if create_karaoke and version.parse(format_version.value) < version.parse(FormatVersion.V1_1_0.value):
         title = basename + " [Karaoke]"
         ultrastar_txt.title = title
-        ultrastar_txt.mp3 = title + ".m4a"
+        ultrastar_txt.mp3 = f"{title}.{normalized_audio_ext}"
         karaoke_output_path = os.path.join(song_folder_output_path, title)
         karaoke_txt_output_path = karaoke_output_path + ".txt"
         create_ultrastar_txt(

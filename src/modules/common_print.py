@@ -56,6 +56,7 @@ def print_help() -> None:
     --plot                  Enable creation of plots. Plots are disabled by default.
     --quantize_to_key       Quantize notes to the detected musical key. This removes slides and out-of-key notes.
     --format_version        0.3.0|1.0.0|1.1.0|1.2.0 >> ((default) is 1.2.0)
+    --audio_ext             m4a|mp3|wav|flac|ogg >> ((default) is m4a)
     --musescore_path        path to MuseScore executable
     --keep_numbers          Transcribe numbers as digits and not words
     --ffmpeg                Path to ffmpeg and ffprobe executable
